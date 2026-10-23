@@ -1,0 +1,48 @@
+# Copy to dev.tfvars and fill in. Real tfvars files are gitignored: they carry
+# tenant/subscription identifiers, not secrets, but there is no reason to publish
+# either. Secrets are NEVER put in tfvars - they come from Key Vault or the
+# pipeline's secret store (see var.device_root_ca_pem).
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+environment     = "dev"
+location        = "westeurope"
+workload        = "devtel"
+
+# Entra ID app registrations (created once per tenant, outside this state - they
+# are shared identity plumbing, not per-environment infrastructure).
+entra_tenant_id   = "00000000-0000-0000-0000-000000000000"
+api_app_client_id = "00000000-0000-0000-0000-000000000000"
+spa_app_client_id = "00000000-0000-0000-0000-000000000000"
+
+sql_entra_admin = {
+  object_id    = "00000000-0000-0000-0000-000000000000"
+  display_name = "sg-devtel-sql-admins"
+}
+
+# Dev sizing: cheapest options that still exercise the real code paths.
+iothub_sku = {
+  name     = "S1"
+  capacity = 1
+}
+
+signalr_sku = {
+  name     = "Standard_S1"
+  capacity = 1
+}
+
+sql_sku_name    = "S1"
+sql_max_size_gb = 32
+
+functions_plan_sku            = "EP1"
+functions_prewarmed_instances = 1
+
+reading_retention_days       = 7
+device_offline_after_seconds = 90
+
+alert_email_receivers = {
+  platform = "platform-oncall@example.com"
+}
+
+tags = {
+  data_classification = "internal"
+}

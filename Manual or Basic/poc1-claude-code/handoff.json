@@ -1,0 +1,63 @@
+{
+  "stage": "ui",
+  "producer": "agent-a-ui",
+  "consumer": "agent-b-platform",
+  "status": "passed",
+  "timestamp": "2026-08-17T00:00:00Z",
+  "inputs": [
+    "docs/specs/product-spec.md"
+  ],
+  "outputs": [
+    "docs/design/ui-spec.md",
+    "docs/design/design-tokens.json",
+    "docs/design/component-contracts.md"
+  ],
+  "gate": {
+    "score": 1.0,
+    "checklist": [
+      {
+        "item": "Every screen has defined empty / loading / error states",
+        "passed": true
+      },
+      {
+        "item": "Every component lists the exact data fields it consumes",
+        "passed": true
+      },
+      {
+        "item": "Design tokens are machine-readable JSON",
+        "passed": true
+      },
+      {
+        "item": "No ambiguous \"TBD\" left in the spec",
+        "passed": true
+      }
+    ]
+  },
+  "summary": "Translated product-spec.md into an Angular UI design covering login, device list, device detail (live 24h sensor chart), and a global + device-scoped alert panel. All screens define loading/empty/error/offline/stale-feed states. Component contracts specify exact @Input/@Output data shapes for every component. Design tokens (color, spacing, typography, chart, breakpoints) are in design-tokens.json.",
+  "open_questions": [
+    {
+      "question": "Exact sensor channel taxonomy for dosing devices (names/units) is not specified in the product spec.",
+      "impact": "non-blocking",
+      "resolution_in_this_handoff": "SensorChartComponent and DeviceDetail.channels[] are generic/backend-driven (channelId, label, unit) so UI doesn't hardcode sensor types.",
+      "owner_for_final_answer": "agent-b-platform (OpenAPI contract) / product"
+    },
+    {
+      "question": "Realtime transport for live chart updates and sub-30s alert delivery (SignalR/WebSocket vs. polling) is not specified.",
+      "impact": "non-blocking for UI (components consume an Observable stream regardless), but affects Agent B's architecture and whether the 30s alert-latency SLA is achievable.",
+      "resolution_in_this_handoff": "UI assumes a push-capable stream with a 'connected/reconnecting/disconnected' status surfaced to the user.",
+      "owner_for_final_answer": "agent-b-platform"
+    },
+    {
+      "question": "Identity provider / auth mechanism for 'authenticated operators' is not specified.",
+      "impact": "non-blocking for UI (LoginComponent + route guard are IdP-agnostic).",
+      "resolution_in_this_handoff": "UI assumes OIDC/OAuth2-style session; LoginComponent supports a password-form path and can be swapped for SSO redirect without contract changes.",
+      "owner_for_final_answer": "agent-b-platform / agent-c2-security"
+    }
+  ],
+  "self_check": {
+    "every_screen_has_loading_empty_error_states": true,
+    "every_component_lists_exact_data_fields": true,
+    "design_tokens_machine_readable": true,
+    "no_tbd_in_spec": true
+  }
+}

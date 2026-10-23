@@ -1,0 +1,12 @@
+# Never commit real variable files, state, or provider binaries.
+*.tfvars
+!*.tfvars.example
+*.backend.hcl
+!*.backend.hcl.example
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+crash.*.log
+# Plan files can contain resolved secret values.
+*.tfplan

@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://idlc.local/schemas/handoff.schema.json",
+  "title": "IDLC Handoff Artifact",
+  "description": "The contract every IDLC agent must emit when it finishes a stage. The next agent consumes this and MUST NOT proceed unless status == 'passed'. This schema is identical across all four POCs - only the orchestration engine that reads/writes it changes.",
+  "type": "object",
+  "required": ["stage", "producer", "status", "artifacts", "gate", "timestamp"],
+  "properties": {
+    "stage": {
+      "type": "string",
+      "enum": ["leadership", "ui", "platform", "app", "security", "qa"],
+      "description": "Which IDLC stage produced this handoff."
+    },
+    "producer": {
+      "type": "string",
+      "description": "Agent id, e.g. 'agent-a-ui', 'agent-b-platform'."
+    },
+    "consumer": {
+      "type": "string",
+      "description": "Agent id expected to consume this next. Null if terminal."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["passed", "failed", "needs_human_review"],
+      "description": "Gate result. 'needs_human_review' pauses the pipeline in human-in-the-loop mode."
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Concrete files this stage produced (relative repo paths).",
+      "items": {
+        "type": "object",
+        "required": ["path", "type"],
+        "properties": {
+          "path": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["spec", "design", "adr", "iac", "code", "test", "report", "config"]
+          },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "required": ["checks", "score"],
+      "description": "Quality-gate evidence. The orchestrator decides pass/fail from this.",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "passed"],
+            "properties": {
+              "name": { "type": "string" },
+              "passed": { "type": "boolean" },
+              "detail": { "type": "string" }
+            }
+          }
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0..1 confidence the stage output is acceptable."
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Blocking questions for a human. If non-empty, status should be needs_human_review."
+    },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

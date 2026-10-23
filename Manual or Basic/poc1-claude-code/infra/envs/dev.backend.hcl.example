@@ -1,0 +1,14 @@
+# terraform init -backend-config=envs/dev.backend.hcl
+#
+# Remote state, not local: the pipeline and any engineer must converge on one
+# state, and state contains the generated SQL password until it lands in Key
+# Vault - so it lives in an encrypted, RBAC-controlled, versioned container.
+#
+# Note what is absent: no access_key / sas_token. use_azuread_auth means the
+# caller's Entra identity is used, so there is no storage key to leak.
+
+resource_group_name  = "rg-tfstate-shared"
+storage_account_name = "sttfstateshared"
+container_name       = "devtel-tfstate"
+key                  = "dev/terraform.tfstate"
+use_azuread_auth     = true

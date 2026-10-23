@@ -1,0 +1,78 @@
+# IDLC — automated run, triggered by an Azure DevOps work-item update.
+#
+# HOW IT FIRES (this pipeline does NOT poll):
+#   Azure DevOps → Project Settings → Service Hooks → new subscription:
+#     Trigger : "Work item updated"
+#     Filter  : Area = <your area>, and (recommended) a field like
+#               "State = Ready for Agent" so it only fires when you flip a tag,
+#               not on every edit.
+#     Action  : "Trigger Azure Pipeline" → this pipeline,
+#               passing the work item id as the variable WORKITEM_ID.
+#
+# WHAT IT DOES:
+#   1. Pulls the requirement text FROM the work item (no manual spec file).
+#   2. Runs Claude Code headless through the IDLC pipeline.
+#   3. The agents (via MCP) open a PR, set the work item state, and comment
+#      what they did.
+
+trigger: none          # never runs on push; only via the service hook
+pr: none
+
+parameters:
+  - name: mode
+    type: string
+    default: sequential
+    values: [sequential, orchestrated]   # 'human' makes no sense unattended
+
+variables:
+  - group: idlc-secrets        # holds ANTHROPIC_API_KEY, ADO_PAT, GITHUB_TOKEN
+  - name: WORKITEM_ID
+    value: $(WORKITEM_ID)      # supplied by the service hook payload
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    persistCredentials: true
+
+  - task: NodeTool@0
+    inputs: { versionSpec: "20.x" }
+
+  - script: npm install -g @anthropic-ai/claude-code
+    displayName: Install Claude Code
+
+  - script: |
+      set -e
+      python3 scripts/bootstrap_from_workitem.py \
+        --id "$(WORKITEM_ID)" \
+        --out docs/specs/product-spec.md
+    displayName: "Build spec from work item $(WORKITEM_ID)"
+    env:
+      ADO_ORG: $(ADO_ORG)
+      ADO_PAT: $(ADO_PAT)
+      ADO_PROJECT: $(System.TeamProject)
+
+  - script: |
+      set -e
+      git config user.email "idlc-agent@yourorg.com"
+      git config user.name  "IDLC Agent"
+      git checkout -b "feature/wi-$(WORKITEM_ID)"
+      # headless run — no human to approve tool calls, so pre-approve via settings
+      claude -p "/idlc-run ${{ parameters.mode }}. This run is for Azure DevOps \
+        work item $(WORKITEM_ID). When the pipeline finishes, use the \
+        azure-devops MCP tools to: (1) open a pull request for branch \
+        feature/wi-$(WORKITEM_ID) into main, (2) set the work item state to \
+        'In Review', and (3) add a comment summarizing each stage's result \
+        from its handoff.json." \
+        --dangerously-skip-permissions
+    displayName: "Run IDLC agents (headless)"
+    env:
+      ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)
+      GITHUB_TOKEN: $(GITHUB_TOKEN)
+      ADO_ORG: $(ADO_ORG)
+      ADO_PAT: $(ADO_PAT)
+
+  - publish: handoffs
+    artifact: handoffs-wi-$(WORKITEM_ID)
+    condition: always()

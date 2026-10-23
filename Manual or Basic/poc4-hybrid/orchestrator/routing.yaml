@@ -1,0 +1,10 @@
+# Which engine runs each IDLC stage. Change 'engine' to re-route a stage.
+# engines: claude-subagent | copilot-ado | langgraph
+mode: orchestrated        # sequential | orchestrated | human
+max_attempts: 2
+stages:
+  ui:        { engine: claude-subagent, agent: ui-designer }
+  platform:  { engine: claude-subagent, agent: platform-architect }
+  app:       { engine: copilot-ado,     pipeline: idlc-app }
+  security:  { engine: claude-subagent, agent: security-auditor }
+  qa:        { engine: copilot-ado,     pipeline: idlc-qa }

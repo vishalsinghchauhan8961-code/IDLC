@@ -1,0 +1,96 @@
+# IDLC pipeline — Azure DevOps. Stages ARE the IDLC handoffs.
+# Coordination mode is chosen via the 'mode' parameter at queue time.
+trigger: none
+
+parameters:
+  - name: mode
+    displayName: Coordination mode
+    type: string
+    default: sequential
+    values: [sequential, orchestrated, human]
+
+variables:
+  artifactDir: $(Build.ArtifactStagingDirectory)/handoffs
+
+stages:
+  - stage: ui
+    displayName: "Agent A — UI"
+    jobs:
+      - job: run
+        steps:
+          - template: ../pipelines/templates/run-agent.yml
+            parameters: { stage: ui, chatmode: ui }
+
+  - stage: gate_ui
+    dependsOn: ui
+    displayName: "Gate: UI"
+    jobs:
+      - ${{ if eq(parameters.mode, 'human') }}:
+          - job: approve
+            pool: server
+            steps:
+              - task: ManualValidation@0
+                inputs:
+                  instructions: "Review UI handoff before Platform stage."
+      - job: validate
+        steps:
+          - template: ../pipelines/templates/gate.yml
+            parameters: { stage: ui }
+
+  - stage: platform
+    dependsOn: gate_ui
+    condition: eq(dependencies.gate_ui.outputs['validate.gate.passed'], 'true')
+    displayName: "Agent B — Platform"
+    jobs:
+      - job: run
+        steps:
+          - template: ../pipelines/templates/run-agent.yml
+            parameters: { stage: platform, chatmode: platform }
+
+  - stage: gate_platform
+    dependsOn: platform
+    displayName: "Gate: Platform"
+    jobs:
+      - ${{ if eq(parameters.mode, 'human') }}:
+          - job: approve
+            pool: server
+            steps:
+              - task: ManualValidation@0
+                inputs: { instructions: "Approve architecture before App stage." }
+      - job: validate
+        steps:
+          - template: ../pipelines/templates/gate.yml
+            parameters: { stage: platform }
+
+  - stage: app
+    dependsOn: gate_platform
+    condition: eq(dependencies.gate_platform.outputs['validate.gate.passed'], 'true')
+    displayName: "Agent C — App"
+    jobs:
+      - job: run
+        steps:
+          - template: ../pipelines/templates/run-agent.yml
+            parameters: { stage: app, chatmode: app }
+
+  - stage: security
+    dependsOn: app
+    displayName: "Agent C.2 — Security"
+    jobs:
+      - job: run
+        steps:
+          - template: ../pipelines/templates/run-agent.yml
+            parameters: { stage: security, chatmode: security }
+          - template: ../pipelines/templates/gate.yml
+            parameters: { stage: security }
+
+  - stage: qa
+    dependsOn: security
+    condition: eq(dependencies.security.outputs['gate.gate.passed'], 'true')
+    displayName: "Agent D — QA"
+    jobs:
+      - job: run
+        steps:
+          - template: ../pipelines/templates/run-agent.yml
+            parameters: { stage: qa, chatmode: qa }
+          - template: ../pipelines/templates/gate.yml
+            parameters: { stage: qa }

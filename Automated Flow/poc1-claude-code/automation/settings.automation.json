@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "AUTOMATION-ONLY settings. Point Claude Code at this in the pipeline (see automation/README.md). It differs from the default .claude/settings.json in ONE way: it allows the agent to push its own feature branch, which is required for the reporter to open a PR. It still denies push to main, terraform apply, and rm -rf. Do NOT use this for local interactive work — the stricter default is safer there.",
+  "permissions": {
+    "allow": [
+      "Read", "Write", "Edit", "Glob", "Grep",
+      "Bash(terraform validate:*)",
+      "Bash(dotnet build:*)",
+      "Bash(ng build:*)",
+      "Bash(npm test:*)",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push origin feature/*:*)",
+      "Bash(git checkout -b feature/*:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(terraform apply:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push --force:*)"
+    ]
+  },
+  "env": {
+    "IDLC_MODE": "sequential"
+  }
+}

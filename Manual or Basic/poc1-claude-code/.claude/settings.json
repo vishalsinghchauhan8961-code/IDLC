@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read", "Write", "Edit", "Glob", "Grep",
+      "Bash(terraform validate:*)",
+      "Bash(dotnet build:*)",
+      "Bash(ng build:*)",
+      "Bash(npm test:*)",
+      "Bash(git status:*)", "Bash(git diff:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(terraform apply:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/gate-check.sh" }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "IDLC_MODE": "sequential"
+  }
+}

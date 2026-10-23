@@ -1,0 +1,21 @@
+# Invokes a GitHub Copilot coding agent (or gh copilot CLI) for one stage,
+# passing the upstream handoff as context. Produces handoffs/<stage>.json.
+parameters:
+  - name: stage
+    type: string
+  - name: chatmode
+    type: string
+steps:
+  - checkout: self
+  - script: |
+      set -e
+      mkdir -p handoffs
+      echo "Running IDLC stage '${{ parameters.stage }}' in chatmode '${{ parameters.chatmode }}'"
+      # In practice: trigger the Copilot coding agent via GitHub API assigning an
+      # issue with the chatmode, OR run `gh copilot` in the pipeline agent.
+      # The agent reads .github/copilot/${{ parameters.chatmode }}.chatmode.md
+      # and the upstream handoff, then writes handoffs/${{ parameters.stage }}.json.
+      ./agents/invoke-copilot.sh "${{ parameters.stage }}" "${{ parameters.chatmode }}"
+    displayName: "Run ${{ parameters.stage }} agent"
+  - publish: handoffs
+    artifact: handoff-${{ parameters.stage }}

@@ -1,0 +1,20 @@
+# Validates a stage's handoff.json against the schema and emits gate.passed.
+parameters:
+  - name: stage
+    type: string
+steps:
+  - script: |
+      set -e
+      pip install check-jsonschema >/dev/null
+      HF="handoffs/${{ parameters.stage }}.json"
+      check-jsonschema --schemafile shared/schemas/handoff.schema.json "$HF"
+      STATUS=$(python -c "import json;print(json.load(open('$HF'))['status'])")
+      echo "Gate for ${{ parameters.stage }}: $STATUS"
+      if [ "$STATUS" = "passed" ]; then
+        echo "##vso[task.setvariable variable=passed;isOutput=true]true"
+      else
+        echo "##vso[task.setvariable variable=passed;isOutput=true]false"
+        echo "Gate not passed — downstream stages will be skipped."
+      fi
+    name: gate
+    displayName: "Gate ${{ parameters.stage }}"
